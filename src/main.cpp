@@ -1,70 +1,53 @@
-/*  hello_xiao    A first sketch for the Seeed Studio XIAO ESP32C3 in PlatformIO*
-  
-    *This example code is in the public domain.*
-  
-    *Michel Deslierres  June 15, 2020 */
-  
-  #include <Arduino.h>  // needed in PlatformIO*
-  
-  void setup() {
-    Serial.begin(115200);
-  }
-  
-  void loop() {
-    Serial.println("Hello XIAO!");
-    delay(2000);
-  }
-
-  #include <Arduino.h>
-  
+#include <Arduino.h>
 #include <Bounce2.h>
 
-// Pin definitions
-const int SWITCH_PIN = D2;  // GPIO switch pin
-const int LED_PIN = D10;    // GPIO LED pin
+// --------------------
+// Pin configuration
+// --------------------
+constexpr uint8_t PIN_BUTTON = D3;
+constexpr uint8_t PIN_LED    = D10;
 
-// Debounce object
-Bounce2::Button button = Bounce2::Button();
+// --------------------
+// Objects & State
+// --------------------
+Bounce buttonDebounce;
+bool isLedOn = false;
 
-// Variable to track LED state
-bool ledState = false;
-
-void setup() {
-  // Initialize Serial for logging
-  Serial.begin(115200);
-  delay(1000);  // Wait for serial to initialize
-  
-  Serial.println("\n\n=== LED Switch Control Initialized ===");
-  Serial.println("XIAO ESP32C3 - Tactile Switch with LED Control");
-  Serial.println("=====================================\n");
-  
-  // Configure LED pin
-  pinMode(LED_PIN, OUTPUT);
-  digitalWrite(LED_PIN, LOW);  // Start with LED off
-  
-  // Configure debounced button
-  button.attach(SWITCH_PIN, INPUT_PULLUP);  // Use internal pull-up
-  button.interval(50);  // Debounce interval in ms
-  button.setPressedState(LOW);  // Button is pressed when LOW
-  
-  Serial.println("Setup complete. Waiting for button presses...\n");
+// --------------------
+// Helper function
+// --------------------
+void updateLed() {
+  digitalWrite(PIN_LED, isLedOn ? HIGH : LOW);
 }
 
+// --------------------
+// Arduino setup
+// --------------------
+void setup() {
+  Serial.begin(115200);
+  delay(2000);
+
+  pinMode(PIN_LED, OUTPUT);
+  updateLed();  // set initial LED state
+
+  pinMode(PIN_BUTTON, INPUT_PULLUP);
+  buttonDebounce.attach(PIN_BUTTON);
+  buttonDebounce.interval(25);
+
+  Serial.println("System initialized. Waiting for button press...");
+}
+
+// --------------------
+// Arduino loop
+// --------------------
 void loop() {
-  // Update button state
-  button.update();
-  
-  // Check if button was pressed
-  if (button.pressed()) {
-    // Toggle LED state
-    ledState = !ledState;
-    digitalWrite(LED_PIN, ledState ? HIGH : LOW);
-    
-    // Log the state change
-    Serial.print("Button pressed - LED is now: ");
-    Serial.println(ledState ? "ON" : "OFF");
+  buttonDebounce.update();
+
+  if (buttonDebounce.fell()) {   // detect button press (active LOW)
+    isLedOn = !isLedOn;           // toggle LED state
+    updateLed();
+
+    Serial.print("LED status changed: ");
+    Serial.println(isLedOn ? "ON" : "OFF");
   }
-  
-  // Small delay to prevent overwhelming the serial output
-  delay(10);
 }
